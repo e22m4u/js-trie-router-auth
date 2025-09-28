@@ -5,7 +5,7 @@
 Модуль встраивается в связку:
 
 - [@e22m4u/js-service](https://www.npmjs.com/package/@e22m4u/js-service)
-  \- Реализация сервис-локатора;
+  \- Сервис-локатор;
 - [@e22m4u/js-trie-router](https://www.npmjs.com/package/@e22m4u/js-trie-router)
   \- HTTP роутер на основе префиксного дерева;
 - [@e22m4u/js-repository](https://www.npmjs.com/package/@e22m4u/js-repository)
@@ -57,10 +57,9 @@ authService.registerModels({datasource: 'myDatasource'});
 authService.registerRequestHooks();
 ```
 
-На первой строке примера выше выполняется инъекция `AuthService`
-без дополнительных аргументов, но вторым параметром метода `app.get`
-мы могли бы передать объект с настройками данного сервиса,
-как это показано ниже.
+На первой строке примера выше выполняется инъекция сервиса `AuthService`
+без дополнительных аргументов, но вторым параметром метода `app.get()`
+можно передать объект с настройками, как это показано ниже.
 
 ```ts
 const authService = app.get(AuthService, {
@@ -80,6 +79,8 @@ const authService = app.get(AuthService, {
   jwtQueryParam: 'accessToken',
 });
 ```
+
+WIP
 
 ## Тесты
 
