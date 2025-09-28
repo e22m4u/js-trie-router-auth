@@ -33,7 +33,7 @@ export class BaseAccessTokenModel<
   createdAt?: string;
 
   @property({
-    type: DataType.STRING,
+    type: DataType.ANY,
     required: true,
   })
   ownerId?: UserType['id'];
