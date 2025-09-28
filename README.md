@@ -106,7 +106,7 @@ WIP
 
 ## Модели
 
-### BaseRole и Role
+### RoleModel
 
 ```js
 {
@@ -128,7 +128,7 @@ WIP
 }
 ```
 
-### BaseUser и User
+### UserModel
 
 ```js
 {
@@ -180,7 +180,7 @@ WIP
 }
 ```
 
-### BaseAccessToken и AccessToken
+### AccessTokenModel
 
 ```js
 {
