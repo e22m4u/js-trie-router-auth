@@ -5,7 +5,7 @@
 Модуль встраивается в связку:
 
 - [@e22m4u/js-service](https://www.npmjs.com/package/@e22m4u/js-service)
-  \- Сервис-локатор;
+  \- сервис-локатор;
 - [@e22m4u/js-trie-router](https://www.npmjs.com/package/@e22m4u/js-trie-router)
   \- HTTP роутер на основе префиксного дерева;
 - [@e22m4u/js-repository](https://www.npmjs.com/package/@e22m4u/js-repository)
