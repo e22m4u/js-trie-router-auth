@@ -18,11 +18,11 @@ export const AccessRule = {
 export type AccessRule = (typeof AccessRule)[keyof typeof AccessRule];
 
 /**
- * Access guard.
+ * Role guard.
  *
  * @param roleName
  */
-export function accessGuard(roleName?: string | string[]): RoutePreHandler {
+export function roleGuard(roleName?: string | string[]): RoutePreHandler {
   return function (ctx: RequestContext) {
     const localizer = ctx.container.getRegistered(AuthLocalizer);
     const session = ctx.container.getRegistered(UserSession);

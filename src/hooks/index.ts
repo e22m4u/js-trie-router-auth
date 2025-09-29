@@ -1,1 +1,1 @@
-export * from './access-guard.js';
+export * from './role-guard.js';
