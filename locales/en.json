@@ -22,6 +22,6 @@
   "authorizationService.findUserAndValidatePassword.phoneRequiredError": "Please enter your phone number",
   "authorizationService.findUserAndValidatePassword.loginFailedError": "Invalid login or password",
   "authorizationService.verifyJwtAndFindItsOwner.ownerNotFound": "Your session has expired. Please log in again.",
-  "requireRoleHook.authenticationRequired": "Authentication is required",
-  "requireRoleHook.roleNotAllowed": "You do not have permissions to perform this action"
+  "roleGuard.authenticationRequired": "Authentication is required",
+  "roleGuard.roleNotAllowed": "You do not have permissions to perform this action"
 }

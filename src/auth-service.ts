@@ -11,7 +11,7 @@ import {BaseRoleModel} from './models/index.js';
 import {BaseUserModel} from './models/index.js';
 import {WithoutId} from '@e22m4u/js-repository';
 import {removeEmptyKeys} from './utils/index.js';
-import {AuthLocalizer} from './auth-localizer.js';
+import {authLocalizer, AuthLocalizer} from './auth-localizer.js';
 import {WhereClause} from '@e22m4u/js-repository';
 import {TrieRouter} from '@e22m4u/js-trie-router';
 import {AccessTokenModel} from './models/index.js';
@@ -27,8 +27,6 @@ import {phoneFormatValidator} from './validators/index.js';
 import {passwordFormatValidator} from './validators/index.js';
 import {usernameFormatValidator} from './validators/index.js';
 import {getModelDefinitionFromClass} from '@e22m4u/js-repository-decorators';
-import en from '../locales/en.json' with {type: 'json'};
-import ru from '../locales/ru.json' with {type: 'json'};
 
 /**
  * Auth model list.
@@ -128,9 +126,7 @@ export type UserLookupWithPassword = UserLookup & {
  */
 async function preHandlerHook(ctx: RequestContext) {
   // инъекция экземпляра переводчика
-  const localizer = new AuthLocalizer({
-    dictionaries: {en, ru},
-  }).cloneWithLocaleFromRequest(ctx.req);
+  const localizer = authLocalizer.cloneWithLocaleFromRequest(ctx.req);
   ctx.container.set(AuthLocalizer, localizer);
   // инъекция пользовательской сессии
   const authService = ctx.container.get(AuthService);
@@ -464,7 +460,7 @@ export class AuthService extends DebuggableService {
     if (existingUser && value == null) return;
     // если получено пустое значение, но идентификатор
     // является обязательным, то выбрасывается ошибка
-    const isRequired = this.options[`require${titledIdName}OnRegister`];
+    const isRequired = this.options[`require${titledIdName}`];
     if (isRequired && !value)
       throw createError(
         HttpErrors.BadRequest,

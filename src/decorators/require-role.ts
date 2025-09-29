@@ -1,4 +1,4 @@
-import {requireRoleHook} from '../hooks/index.js';
+import {accessGuard} from '../hooks/index.js';
 import {beforeAction} from '@e22m4u/ts-rest-router';
 
 /**
@@ -7,7 +7,7 @@ import {beforeAction} from '@e22m4u/ts-rest-router';
  * @param role
  */
 export function requireRole(
-  role: string | string[],
+  roleName: string | string[],
 ): ReturnType<typeof beforeAction> {
-  return beforeAction(requireRoleHook(role));
+  return beforeAction(accessGuard(roleName));
 }
