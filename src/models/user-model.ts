@@ -1,6 +1,8 @@
 import {RoleModel} from './role-model.js';
 import {BaseRoleModel} from './role-model.js';
+import {noInput} from '@e22m4u/ts-projection';
 import {DataType} from '@e22m4u/js-repository';
+import {noOutput} from '@e22m4u/ts-projection';
 import {RelationType} from '@e22m4u/js-repository';
 import {model} from '@e22m4u/js-repository-decorators';
 import {PropertyUniqueness} from '@e22m4u/js-repository';
@@ -43,27 +45,17 @@ export class BaseUserModel<
   phone?: string;
 
   @property({
-    type: DataType.BOOLEAN,
-    default: false,
-  })
-  isEmailVerified?: boolean;
-
-  @property({
-    type: DataType.BOOLEAN,
-    default: false,
-  })
-  isPhoneVerified?: boolean;
-
-  @property({
     type: DataType.STRING,
     default: '',
   })
+  @noOutput()
   password?: string;
 
   @property({
     type: DataType.STRING,
     default: () => new Date().toISOString(),
   })
+  @noInput()
   createdAt?: string;
 
   @property({

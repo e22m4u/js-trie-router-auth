@@ -46,7 +46,7 @@
     "@e22m4u/js-repository": "~0.5.5",
     "@e22m4u/js-repository-decorators": "~0.2.3",
     "@e22m4u/js-trie-router": "~0.2.1",
-    "@e22m4u/ts-projection": "^0.2.1",
+    "@e22m4u/ts-projection": "~0.2.1",
     "@e22m4u/ts-rest-router": "~0.5.3",
     "@types/jsonwebtoken": "~9.0.10",
     "bcrypt": "~6.0.0",
