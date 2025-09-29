@@ -21,5 +21,7 @@
   "authorizationService.findUserAndValidatePassword.emailRequiredError": "Введите адрес электронной почты",
   "authorizationService.findUserAndValidatePassword.phoneRequiredError": "Введите номер телефона",
   "authorizationService.findUserAndValidatePassword.loginFailedError": "Неверный логин или пароль",
-  "authorizationService.verifyJwtAndFindItsOwner.ownerNotFound": "Ваша сессия истекла. Пожалуйста, войдите повторно"
+  "authorizationService.verifyJwtAndFindItsOwner.ownerNotFound": "Ваша сессия истекла. Пожалуйста, войдите повторно",
+  "requireRoleHook.authenticationRequired": "Требуется авторизация",
+  "requireRoleHook.roleNotAllowed": "У вас недостаточно прав для выполнения данного действия"
 }

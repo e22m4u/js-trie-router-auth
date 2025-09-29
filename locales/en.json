@@ -21,5 +21,7 @@
   "authorizationService.findUserAndValidatePassword.emailRequiredError": "Please enter your email address",
   "authorizationService.findUserAndValidatePassword.phoneRequiredError": "Please enter your phone number",
   "authorizationService.findUserAndValidatePassword.loginFailedError": "Invalid login or password",
-  "authorizationService.verifyJwtAndFindItsOwner.ownerNotFound": "Your session has expired. Please log in again."
+  "authorizationService.verifyJwtAndFindItsOwner.ownerNotFound": "Your session has expired. Please log in again.",
+  "requireRoleHook.authenticationRequired": "Authentication is required",
+  "requireRoleHook.roleNotAllowed": "You do not have permissions to perform this action"
 }

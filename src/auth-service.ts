@@ -5,11 +5,13 @@ import HttpErrors from 'http-errors';
 import {RoleModel} from './models/index.js';
 import {UserModel} from './models/index.js';
 import {createError} from './utils/index.js';
+import {UserSession} from './user-session.js';
 import {Localizer} from '@e22m4u/js-localizer';
 import {BaseRoleModel} from './models/index.js';
 import {BaseUserModel} from './models/index.js';
 import {WithoutId} from '@e22m4u/js-repository';
 import {removeEmptyKeys} from './utils/index.js';
+import {AuthLocalizer} from './auth-localizer.js';
 import {WhereClause} from '@e22m4u/js-repository';
 import {TrieRouter} from '@e22m4u/js-trie-router';
 import {AccessTokenModel} from './models/index.js';
@@ -124,12 +126,17 @@ export type UserLookupWithPassword = UserLookup & {
  *
  * @param ctx
  */
-function preHandlerHook(ctx: RequestContext) {
+async function preHandlerHook(ctx: RequestContext) {
   // инъекция экземпляра переводчика
-  const localizer = new Localizer({
+  const localizer = new AuthLocalizer({
     dictionaries: {en, ru},
   }).cloneWithLocaleFromRequest(ctx.req);
-  ctx.container.set(Localizer, localizer);
+  ctx.container.set(AuthLocalizer, localizer);
+  // инъекция пользовательской сессии
+  const authService = ctx.container.get(AuthService);
+  const user = await authService.findUserByRequestContext(ctx);
+  const userSession = new UserSession(user);
+  ctx.container.set(UserSession, userSession);
 }
 
 /**
