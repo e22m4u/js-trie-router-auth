@@ -37,7 +37,7 @@ export function roleGuard(roleName?: string | string[]): RoutePreHandler {
     // если требуемые роли не указаны, то допускается
     // любой аутентифицированный пользователь
     const roleNames = !Array.isArray(roleName)
-      ? [roleName].filter(Boolean) as string[]
+      ? ([roleName].filter(Boolean) as string[])
       : roleName;
     if (!roleNames.length || roleNames.includes(AccessRule.AUTHENTICATED)) {
       return;

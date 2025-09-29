@@ -6,7 +6,6 @@ import {BaseRoleModel} from './models/role-model.js';
  * User session.
  */
 export class UserSession<T extends BaseUserModel = UserModel> {
-
   /**
    * Is logged in.
    */
