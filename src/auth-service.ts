@@ -681,7 +681,7 @@ export class AuthService extends DebuggableService {
    *
    * @param inputData
    */
-  async requireAnyLoginId(data: Record<string, unknown>) {
+  requireAnyLoginId(data: Record<string, unknown>) {
     const debug = this.getDebuggerFor(this.createUser);
     debug('Require any login identifier.');
     const localizer = this.getLocalizer();

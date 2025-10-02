@@ -40,6 +40,7 @@ router.defineRoute({
   path: '/users/register',
   handler(ctx) {
     const authService = ctx.container.getRegistered(AuthService);
+    authService.requireAnyLoginId(ctx.body);
     return authService.createUser(ctx.body);
   },
 });
@@ -72,6 +73,7 @@ router.defineRoute({
   handler(ctx) {
     const session = ctx.container.getRegistered(AuthSession);
     const authService = ctx.container.getRegistered(AuthService);
+    authService.requireAnyLoginId(ctx.body);
     return authService.updateUser(session.getUserId(), ctx.body);
   },
 });

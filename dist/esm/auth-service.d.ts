@@ -225,7 +225,7 @@ export declare class AuthService extends DebuggableService {
      *
      * @param inputData
      */
-    requireAnyLoginId(data: Record<string, unknown>): Promise<void>;
+    requireAnyLoginId(data: Record<string, unknown>): void;
     /**
      * Create user.
      *
