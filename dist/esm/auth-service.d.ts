@@ -35,10 +35,6 @@ export type DataFormatValidator = (value: unknown, localizer: Localizer) => void
  * Auth service options.
  */
 export type AuthServiceOptions = {
-    requireUsername: boolean;
-    requireEmail: boolean;
-    requirePhone: boolean;
-    requirePassword: boolean;
     passwordHashRounds: number;
     usernameFormatValidator: DataFormatValidator;
     emailFormatValidator: DataFormatValidator;

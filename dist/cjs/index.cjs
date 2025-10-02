@@ -473,10 +473,6 @@ var LOWER_CASE_LOGIN_ID_NAMES = [
   "phone"
 ];
 var DEFAULT_AUTH_OPTIONS = {
-  requireUsername: false,
-  requireEmail: false,
-  requirePhone: false,
-  requirePassword: true,
   passwordHashRounds: 12,
   usernameFormatValidator,
   emailFormatValidator,
@@ -811,15 +807,6 @@ var _AuthService = class _AuthService extends DebuggableService {
       debug("Existing user was not specified.");
       return;
     }
-    const isRequired = this.options[`require${titledIdName}`];
-    if (isRequired) {
-      debug("Identifier was required.");
-      if (!idValue) {
-        throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
-      } else {
-        debug("Identifier was optional.");
-      }
-    }
     if (idValue) {
       const validator = this.options[`${idName}FormatValidator`];
       validator(idValue, localizer);
@@ -858,7 +845,7 @@ var _AuthService = class _AuthService extends DebuggableService {
     }
     if (LOGIN_ID_NAMES.every((idName) => !inputData[idName]))
       throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t("authorizationService.createUser.identifierRequiredError"));
-    if (this.options.requirePassword || inputData.password) {
+    if (inputData.password) {
       this.options.passwordFormatValidator(inputData.password, localizer);
       inputData.password = await this.hashPassword(inputData.password || "");
       debug("Password hashed.");
@@ -905,7 +892,7 @@ var _AuthService = class _AuthService extends DebuggableService {
     if (LOGIN_ID_NAMES.every((idName) => inputData[idName] === "")) {
       throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t(`${errorKeyPrefix}.identifierRequiredError`));
     }
-    if (inputData.password != null) {
+    if (inputData.password) {
       this.options.passwordFormatValidator(inputData.password, localizer);
       inputData.password = await this.hashPassword(inputData.password || "");
       debug("Password hashed.");

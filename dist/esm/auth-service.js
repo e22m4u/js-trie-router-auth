@@ -49,10 +49,6 @@ export const LOWER_CASE_LOGIN_ID_NAMES = [
  * Default auth options.
  */
 export const DEFAULT_AUTH_OPTIONS = {
-    requireUsername: false,
-    requireEmail: false,
-    requirePhone: false,
-    requirePassword: true,
     passwordHashRounds: 12,
     usernameFormatValidator,
     emailFormatValidator,
@@ -424,18 +420,6 @@ export class AuthService extends DebuggableService {
             debug('Existing user was not specified.');
             return;
         }
-        // если получено пустое значение, но идентификатор
-        // является обязательным, то выбрасывается ошибка
-        const isRequired = this.options[`require${titledIdName}`];
-        if (isRequired) {
-            debug('Identifier was required.');
-            if (!idValue) {
-                throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
-            }
-            else {
-                debug('Identifier was optional.');
-            }
-        }
         if (idValue) {
             // проверка формата при наличии значения
             const validator = this.options[`${idName}FormatValidator`];
@@ -485,7 +469,7 @@ export class AuthService extends DebuggableService {
         if (LOGIN_ID_NAMES.every(idName => !inputData[idName]))
             throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t('authorizationService.createUser.identifierRequiredError'));
         // хэширование пароля
-        if (this.options.requirePassword || inputData.password) {
+        if (inputData.password) {
             this.options.passwordFormatValidator(inputData.password, localizer);
             inputData.password = await this.hashPassword(inputData.password || '');
             debug('Password hashed.');
@@ -540,7 +524,7 @@ export class AuthService extends DebuggableService {
             throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.identifierRequiredError`));
         }
         // хэширование пароля (при наличии)
-        if (inputData.password != null) {
+        if (inputData.password) {
             this.options.passwordFormatValidator(inputData.password, localizer);
             inputData.password = await this.hashPassword(inputData.password || '');
             debug('Password hashed.');
