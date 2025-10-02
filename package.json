@@ -1,6 +1,6 @@
 {
   "name": "@e22m4u/js-trie-router-auth",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Подключаемый сервис авторизации с ролевой моделью",
   "author": "Mikhail Evstropov <e22m4u@yandex.ru>",
   "license": "MIT",
