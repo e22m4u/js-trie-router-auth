@@ -323,19 +323,15 @@ var en_default = {
   "validators.dataFormatValidator.invalidPasswordFormatError": "Password must contain at least one letter and one number",
   "validators.dataFormatValidator.minPasswordLengthError": "Password must be at least %d characters long",
   "validators.dataFormatValidator.maxPasswordLengthError": "Password must not exceed %d characters",
-  "authService.validateLoginIdInUserDataInput.usernameRequiredError": "Please enter a username",
-  "authService.validateLoginIdInUserDataInput.emailRequiredError": "Please enter an email address",
-  "authService.validateLoginIdInUserDataInput.phoneRequiredError": "Please enter a phone number",
   "authService.validateLoginIdInUserDataInput.duplicateUsernameError": "This username is already taken",
   "authService.validateLoginIdInUserDataInput.duplicateEmailError": "This email address is already in use",
   "authService.validateLoginIdInUserDataInput.duplicatePhoneError": "This phone number is already in use",
-  "authService.createUser.identifierRequiredError": "A username, email address or phone number is required",
+  "authService.requireAnyLoginIdentifier.identifierRequiredError": "A username, email address or phone number is required",
+  "authService.requireAnyLoginIdentifier.usernameRequiredError": "Please enter username",
+  "authService.requireAnyLoginIdentifier.emailRequiredError": "Please enter email",
+  "authService.requireAnyLoginIdentifier.phoneRequiredError": "Please enter phone",
   "authService.updateUser.identifierRequiredError": "Please provide a username, email address or phone number",
   "authService.updateUser.userNotFoundError": "User not found",
-  "authService.findUserByLoginIds.identifierRequiredError": "Please enter your username, email or phone number",
-  "authService.findUserByLoginIds.usernameRequiredError": "Please enter your username",
-  "authService.findUserByLoginIds.emailRequiredError": "Please enter your email address",
-  "authService.findUserByLoginIds.phoneRequiredError": "Please enter your phone number",
   "authService.findUserByLoginIds.loginFailedError": "Invalid login or password",
   "authService.verifyPassword.invalidPasswordError": "Invalid login or password",
   "roleGuard.authenticationRequired": "Authentication is required",
@@ -355,19 +351,15 @@ var ru_default = {
   "validators.dataFormatValidator.invalidPasswordFormatError": "\u041F\u0430\u0440\u043E\u043B\u044C \u0434\u043E\u043B\u0436\u0435\u043D \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u043A\u0430\u043A \u043C\u0438\u043D\u0438\u043C\u0443\u043C \u043E\u0434\u043D\u0443 \u0431\u0443\u043A\u0432\u0443 \u0438 \u043E\u0434\u043D\u0443 \u0446\u0438\u0444\u0440\u0443",
   "validators.dataFormatValidator.minPasswordLengthError": "\u041F\u0430\u0440\u043E\u043B\u044C \u0434\u043E\u043B\u0436\u0435\u043D \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u043D\u0435 \u043C\u0435\u043D\u0435\u0435 %d \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432",
   "validators.dataFormatValidator.maxPasswordLengthError": "\u041F\u0430\u0440\u043E\u043B\u044C \u043D\u0435 \u0434\u043E\u043B\u0436\u0435\u043D \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0442\u044C %d \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432",
-  "authService.validateLoginIdInUserDataInput.usernameRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F",
-  "authService.validateLoginIdInUserDataInput.emailRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B",
-  "authService.validateLoginIdInUserDataInput.phoneRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
   "authService.validateLoginIdInUserDataInput.duplicateUsernameError": "\u042D\u0442\u043E \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F \u0443\u0436\u0435 \u0437\u0430\u043D\u044F\u0442\u043E",
   "authService.validateLoginIdInUserDataInput.duplicateEmailError": "\u042D\u0442\u043E\u0442 \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B \u0443\u0436\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0441\u044F",
   "authService.validateLoginIdInUserDataInput.duplicatePhoneError": "\u042D\u0442\u043E\u0442 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430 \u0443\u0436\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0441\u044F",
-  "authService.createUser.identifierRequiredError": "\u041D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u043E \u0443\u043A\u0430\u0437\u0430\u0442\u044C \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F, \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B \u0438\u043B\u0438 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
+  "authService.requireAnyLoginIdentifier.identifierRequiredError": "\u041D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u043E \u0443\u043A\u0430\u0437\u0430\u0442\u044C \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F, \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B \u0438\u043B\u0438 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
+  "authService.requireAnyLoginIdentifier.usernameRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F",
+  "authService.requireAnyLoginIdentifier.emailRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B",
+  "authService.requireAnyLoginIdentifier.phoneRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
   "authService.updateUser.identifierRequiredError": "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F, \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B \u0438\u043B\u0438 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
   "authService.updateUser.userNotFoundError": "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D",
-  "authService.findUserByLoginIds.identifierRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F, \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B \u0438\u043B\u0438 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
-  "authService.findUserByLoginIds.usernameRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F",
-  "authService.findUserByLoginIds.emailRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B",
-  "authService.findUserByLoginIds.phoneRequiredError": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
   "authService.findUserByLoginIds.loginFailedError": "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043B\u043E\u0433\u0438\u043D \u0438\u043B\u0438 \u043F\u0430\u0440\u043E\u043B\u044C",
   "authService.verifyPassword.invalidPasswordError": "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043B\u043E\u0433\u0438\u043D \u0438\u043B\u0438 \u043F\u0430\u0440\u043E\u043B\u044C",
   "roleGuard.authenticationRequired": "\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u0440\u0438\u0437\u0430\u0446\u0438\u044F",
@@ -732,30 +724,25 @@ var _AuthService = class _AuthService extends DebuggableService {
    * @param include
    * @param silent
    */
-  async findUserByLoginIds(idsFilter, include, silent = false) {
+  async findUserByLoginIds(inputData, include, silent = false) {
     const debug = this.getDebuggerFor(this.findUserByLoginIds);
     debug("Finding user by login identifiers.");
     const localizer = this.getLocalizer();
-    const errorKeyPrefix = "authorizationService.findUserByLoginIds";
+    const errorKeyPrefix = "authService.findUserByLoginIds";
     const where = {};
     let hasAnyLoginId = false;
     LOGIN_ID_NAMES.forEach((name) => {
-      if (idsFilter[name] && String(idsFilter[name]).trim()) {
-        debug("Given %s was %v.", name, idsFilter[name]);
+      if (inputData[name] && String(inputData[name]).trim()) {
+        debug("Given %s was %v.", name, inputData[name]);
         hasAnyLoginId = true;
-        const idValue = LOWER_CASE_LOGIN_ID_NAMES.includes(name) ? String(idsFilter[name]).trim().toLowerCase() : String(idsFilter[name]).trim();
+        const idValue = LOWER_CASE_LOGIN_ID_NAMES.includes(name) ? String(inputData[name]).trim().toLowerCase() : String(inputData[name]).trim();
         where[name] = idValue;
       }
     });
     if (!hasAnyLoginId) {
-      debug("No login identifiers was given.");
       if (silent)
         return;
-      const idFields = LOGIN_ID_NAMES.filter((id) => id in idsFilter);
-      const singleIdField = idFields.length === 1 ? idFields[0] : void 0;
-      if (singleIdField && idsFilter[singleIdField] === "")
-        throw createError(import_http_errors5.default.BadRequest, singleIdField.toUpperCase() + "_LOGIN_REQUIRED", localizer.t(`${errorKeyPrefix}.${singleIdField}RequiredError`));
-      throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t(`${errorKeyPrefix}.identifierRequiredError`));
+      this.requireAnyLoginId(inputData);
     }
     const dbs = this.getRegisteredService(import_js_repository8.DatabaseSchema);
     const userRep = dbs.getRepository(UserModel.name);
@@ -770,59 +757,52 @@ var _AuthService = class _AuthService extends DebuggableService {
     return user;
   }
   /**
-   * Is attempting to remove last login id.
+   * Validate login id.
    *
    * @param idName
-   * @param inputData
-   * @param existingUser
+   * @param idValue
+   * @param ownerId
    */
-  isAttemptingToRemoveLastLoginId(idName, inputData, existingUser) {
-    if (!(idName in inputData) || inputData[idName])
-      return false;
-    const otherIdentifiers = LOGIN_ID_NAMES.filter((id) => id !== idName);
-    const isProvidingNewIdentifier = otherIdentifiers.some((id) => inputData[id]);
-    if (isProvidingNewIdentifier)
-      return false;
-    const hasOtherExistingIdentifiers = otherIdentifiers.some((id) => existingUser[id]);
-    return !hasOtherExistingIdentifiers;
-  }
-  /**
-   * Validate login id in user data input.
-   *
-   * @param idName
-   * @param data
-   * @param localizer
-   * @param existingUser
-   */
-  async validateLoginIdInUserDataInput(idName, inputData, existingUser) {
-    const debug = this.getDebuggerFor(this.validateLoginIdInUserDataInput);
+  async validateLoginId(idName, idValue, ownerId) {
+    const debug = this.getDebuggerFor(this.validateLoginId);
     debug("Validating login identifier in the user data input.");
     const localizer = this.getLocalizer();
     const titledIdName = idName.charAt(0).toUpperCase() + idName.slice(1);
-    const errorKeyPrefix = "authorizationService.validateLoginIdInUserDataInput";
-    const idValue = inputData[idName];
+    const errorKeyPrefix = "authService.validateLoginId";
     debug("Given id name was %v.", idName);
     debug("Given id value was %v.", idValue);
-    if (existingUser && idValue == null) {
-      debug("Existing user was not specified.");
-      return;
-    }
     if (idValue) {
       const validator = this.options[`${idName}FormatValidator`];
       validator(idValue, localizer);
       debug("Value format validated.");
       debug("Checking identifier duplicates.");
       const duplicate = await this.findUserByLoginIds({ [idName]: idValue }, void 0, true);
-      if (duplicate && duplicate.id !== (existingUser == null ? void 0 : existingUser.id)) {
+      if (duplicate && duplicate.id !== ownerId) {
         const errorKey = `${errorKeyPrefix}.duplicate${titledIdName}Error`;
         throw createError(import_http_errors5.default.BadRequest, "DUPLICATE_LOGIN_IDENTIFIER", localizer.t(errorKey));
       }
       debug("No duplicates found.");
     }
-    if (existingUser && this.isAttemptingToRemoveLastLoginId(idName, inputData, existingUser)) {
-      throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
-    }
     debug("Identifier validated.");
+  }
+  /**
+   * Require any login id.
+   *
+   * @param inputData
+   */
+  async requireAnyLoginId(data) {
+    const debug = this.getDebuggerFor(this.createUser);
+    debug("Require any login identifier.");
+    const localizer = this.getLocalizer();
+    const errorKeyPrefix = "authService.requireAnyLoginId";
+    if (LOGIN_ID_NAMES.every((idName) => !data[idName])) {
+      debug("No login identifier was given.");
+      const idFields = LOGIN_ID_NAMES.filter((id) => id in data);
+      const singleIdField = idFields.length === 1 ? idFields[0] : void 0;
+      if (singleIdField && data[singleIdField] === "")
+        throw createError(import_http_errors5.default.BadRequest, singleIdField.toUpperCase() + "_REQUIRED", localizer.t(`${errorKeyPrefix}.${singleIdField}RequiredError`));
+      throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t(`${errorKeyPrefix}.identifierRequiredError`));
+    }
   }
   /**
    * Create user.
@@ -833,18 +813,16 @@ var _AuthService = class _AuthService extends DebuggableService {
    */
   async createUser(inputData, include) {
     const debug = this.getDebuggerFor(this.createUser);
-    const localizer = this.getLocalizer();
     debug("Creating user.");
+    const localizer = this.getLocalizer();
     inputData = JSON.parse(JSON.stringify(inputData));
     LOGIN_ID_NAMES.forEach((idName) => {
       if (typeof inputData[idName] === "string")
         inputData[idName] = inputData[idName].trim();
     });
     for (const idName of LOGIN_ID_NAMES) {
-      await this.validateLoginIdInUserDataInput(idName, inputData);
+      await this.validateLoginId(idName, inputData[idName]);
     }
-    if (LOGIN_ID_NAMES.every((idName) => !inputData[idName]))
-      throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t("authorizationService.createUser.identifierRequiredError"));
     if (inputData.password) {
       this.options.passwordFormatValidator(inputData.password, localizer);
       inputData.password = await this.hashPassword(inputData.password || "");
@@ -867,12 +845,12 @@ var _AuthService = class _AuthService extends DebuggableService {
    * @param include
    */
   async updateUser(userId, inputData, include) {
-    inputData = JSON.parse(JSON.stringify(inputData));
     const debug = this.getDebuggerFor(this.updateUser);
     debug("Updating user.");
     debug("User id was %v.", userId);
+    inputData = JSON.parse(JSON.stringify(inputData));
     const localizer = this.getLocalizer();
-    const errorKeyPrefix = "authorizationService.updateUser";
+    const errorKeyPrefix = "authService.updateUser";
     const dbs = this.getRegisteredService(import_js_repository8.DatabaseSchema);
     const userRep = dbs.getRepository(UserModel.name);
     const existingUser = await userRep.findOne({ where: { id: userId } });
@@ -883,15 +861,12 @@ var _AuthService = class _AuthService extends DebuggableService {
         inputData[idName] = inputData[idName].trim();
     });
     for (const idName of LOGIN_ID_NAMES) {
-      await this.validateLoginIdInUserDataInput(idName, inputData, existingUser);
+      await this.validateLoginId(idName, inputData[idName], existingUser.id);
     }
     LOGIN_ID_NAMES.forEach((idName) => {
       if (inputData[idName] == null)
         delete inputData[idName];
     });
-    if (LOGIN_ID_NAMES.every((idName) => inputData[idName] === "")) {
-      throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t(`${errorKeyPrefix}.identifierRequiredError`));
-    }
     if (inputData.password) {
       this.options.passwordFormatValidator(inputData.password, localizer);
       inputData.password = await this.hashPassword(inputData.password || "");

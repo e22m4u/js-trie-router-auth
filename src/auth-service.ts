@@ -588,44 +588,32 @@ export class AuthService extends DebuggableService {
    * @param silent
    */
   async findUserByLoginIds<T extends BaseUserModel>(
-    idsFilter: LoginIdsFilter,
+    inputData: LoginIdsFilter,
     include?: IncludeClause,
     silent = false,
   ): Promise<T | undefined> {
     const debug = this.getDebuggerFor(this.findUserByLoginIds);
     debug('Finding user by login identifiers.');
     const localizer = this.getLocalizer();
-    const errorKeyPrefix = 'authorizationService.findUserByLoginIds';
+    const errorKeyPrefix = 'authService.findUserByLoginIds';
     // формирование условий выборки
     const where: WhereClause = {};
     let hasAnyLoginId = false;
     LOGIN_ID_NAMES.forEach(name => {
-      if (idsFilter[name] && String(idsFilter[name]).trim()) {
-        debug('Given %s was %v.', name, idsFilter[name]);
+      if (inputData[name] && String(inputData[name]).trim()) {
+        debug('Given %s was %v.', name, inputData[name]);
         hasAnyLoginId = true;
         const idValue = LOWER_CASE_LOGIN_ID_NAMES.includes(name)
-          ? String(idsFilter[name]).trim().toLowerCase()
-          : String(idsFilter[name]).trim();
+          ? String(inputData[name]).trim().toLowerCase()
+          : String(inputData[name]).trim();
         where[name] = idValue;
       }
     });
-    // проверка наличия идентификатора
+    // если ни один идентификатор не определен,
+    // то выбрасывается ошибка
     if (!hasAnyLoginId) {
-      debug('No login identifiers was given.');
       if (silent) return;
-      const idFields = LOGIN_ID_NAMES.filter(id => id in idsFilter);
-      const singleIdField = idFields.length === 1 ? idFields[0] : undefined;
-      if (singleIdField && idsFilter[singleIdField] === '')
-        throw createError(
-          HttpErrors.BadRequest,
-          singleIdField.toUpperCase() + '_LOGIN_REQUIRED',
-          localizer.t(`${errorKeyPrefix}.${singleIdField}RequiredError`),
-        );
-      throw createError(
-        HttpErrors.BadRequest,
-        'LOGIN_IDENTIFIER_REQUIRED',
-        localizer.t(`${errorKeyPrefix}.identifierRequiredError`),
-      );
+      this.requireAnyLoginId(inputData);
     }
     const dbs = this.getRegisteredService(DatabaseSchema);
     const userRep = dbs.getRepository<BaseUserModel>(UserModel.name);
@@ -644,56 +632,24 @@ export class AuthService extends DebuggableService {
   }
 
   /**
-   * Is attempting to remove last login id.
+   * Validate login id.
    *
    * @param idName
-   * @param inputData
-   * @param existingUser
+   * @param idValue
+   * @param ownerId
    */
-  protected isAttemptingToRemoveLastLoginId(
+  protected async validateLoginId(
     idName: LoginIdName,
-    inputData: Partial<BaseUserModel>,
-    existingUser: BaseUserModel,
-  ): boolean {
-    if (!(idName in inputData) || inputData[idName]) return false;
-    const otherIdentifiers = LOGIN_ID_NAMES.filter(id => id !== idName);
-    const isProvidingNewIdentifier = otherIdentifiers.some(id => inputData[id]);
-    if (isProvidingNewIdentifier) return false;
-    const hasOtherExistingIdentifiers = otherIdentifiers.some(
-      id => existingUser[id],
-    );
-    return !hasOtherExistingIdentifiers;
-  }
-
-  /**
-   * Validate login id in user data input.
-   *
-   * @param idName
-   * @param data
-   * @param localizer
-   * @param existingUser
-   */
-  protected async validateLoginIdInUserDataInput(
-    idName: LoginIdName,
-    inputData: Partial<BaseUserModel>,
-    existingUser?: BaseUserModel,
+    idValue: unknown,
+    ownerId?: unknown,
   ): Promise<void> {
-    const debug = this.getDebuggerFor(this.validateLoginIdInUserDataInput);
+    const debug = this.getDebuggerFor(this.validateLoginId);
     debug('Validating login identifier in the user data input.');
     const localizer = this.getLocalizer();
     const titledIdName = idName.charAt(0).toUpperCase() + idName.slice(1);
-    const errorKeyPrefix =
-      'authorizationService.validateLoginIdInUserDataInput';
-    const idValue = inputData[idName];
+    const errorKeyPrefix = 'authService.validateLoginId';
     debug('Given id name was %v.', idName);
     debug('Given id value was %v.', idValue);
-    // если определен существующий пользователь, то данные будут
-    // использованы для обновления методом PATCH, а значит проверка
-    // значений null и undefined не требуется
-    if (existingUser && idValue == null) {
-      debug('Existing user was not specified.');
-      return;
-    }
     if (idValue) {
       // проверка формата при наличии значения
       const validator = this.options[`${idName}FormatValidator`];
@@ -707,7 +663,7 @@ export class AuthService extends DebuggableService {
         undefined,
         true,
       );
-      if (duplicate && duplicate.id !== existingUser?.id) {
+      if (duplicate && duplicate.id !== ownerId) {
         const errorKey = `${errorKeyPrefix}.duplicate${titledIdName}Error`;
         throw createError(
           HttpErrors.BadRequest,
@@ -717,19 +673,37 @@ export class AuthService extends DebuggableService {
       }
       debug('No duplicates found.');
     }
-    // если выполняется попытка удаления последнего
-    // идентификатора, то выбрасывается ошибка
-    if (
-      existingUser &&
-      this.isAttemptingToRemoveLastLoginId(idName, inputData, existingUser)
-    ) {
+    debug('Identifier validated.');
+  }
+
+  /**
+   * Require any login id.
+   *
+   * @param inputData
+   */
+  async requireAnyLoginId(data: Record<string, unknown>) {
+    const debug = this.getDebuggerFor(this.createUser);
+    debug('Require any login identifier.');
+    const localizer = this.getLocalizer();
+    const errorKeyPrefix = 'authService.requireAnyLoginId';
+    // если ни один идентификатор не определен,
+    // то выбрасывается ошибка
+    if (LOGIN_ID_NAMES.every(idName => !data[idName])) {
+      debug('No login identifier was given.');
+      const idFields = LOGIN_ID_NAMES.filter(id => id in data);
+      const singleIdField = idFields.length === 1 ? idFields[0] : undefined;
+      if (singleIdField && data[singleIdField] === '')
+        throw createError(
+          HttpErrors.BadRequest,
+          singleIdField.toUpperCase() + '_REQUIRED',
+          localizer.t(`${errorKeyPrefix}.${singleIdField}RequiredError`),
+        );
       throw createError(
         HttpErrors.BadRequest,
         'LOGIN_IDENTIFIER_REQUIRED',
-        localizer.t(`${errorKeyPrefix}.${idName}RequiredError`),
+        localizer.t(`${errorKeyPrefix}.identifierRequiredError`),
       );
     }
-    debug('Identifier validated.');
   }
 
   /**
@@ -744,26 +718,18 @@ export class AuthService extends DebuggableService {
     include?: IncludeClause,
   ): Promise<T> {
     const debug = this.getDebuggerFor(this.createUser);
-    const localizer = this.getLocalizer();
     debug('Creating user.');
+    const localizer = this.getLocalizer();
     inputData = JSON.parse(JSON.stringify(inputData));
-    // обрезка пробелов
+    // обрезка пробелов в идентификаторах
     LOGIN_ID_NAMES.forEach(idName => {
       if (typeof inputData[idName] === 'string')
         inputData[idName] = inputData[idName].trim();
     });
     // проверка формата идентификаторов и отсутствия дубликатов
     for (const idName of LOGIN_ID_NAMES) {
-      await this.validateLoginIdInUserDataInput(idName, inputData);
+      await this.validateLoginId(idName, inputData[idName]);
     }
-    // если ни один идентификатор не определен,
-    // то выбрасывается ошибка
-    if (LOGIN_ID_NAMES.every(idName => !inputData[idName]))
-      throw createError(
-        HttpErrors.BadRequest,
-        'LOGIN_IDENTIFIER_REQUIRED',
-        localizer.t('authorizationService.createUser.identifierRequiredError'),
-      );
     // хэширование пароля
     if (inputData.password) {
       this.options.passwordFormatValidator(inputData.password, localizer);
@@ -794,12 +760,12 @@ export class AuthService extends DebuggableService {
     inputData: Partial<T>,
     include?: IncludeClause,
   ): Promise<T> {
-    inputData = JSON.parse(JSON.stringify(inputData));
     const debug = this.getDebuggerFor(this.updateUser);
     debug('Updating user.');
     debug('User id was %v.', userId);
+    inputData = JSON.parse(JSON.stringify(inputData));
     const localizer = this.getLocalizer();
-    const errorKeyPrefix = 'authorizationService.updateUser';
+    const errorKeyPrefix = 'authService.updateUser';
     const dbs = this.getRegisteredService(DatabaseSchema);
     const userRep = dbs.getRepository<BaseUserModel>(UserModel.name);
     const existingUser = await userRep.findOne({where: {id: userId}});
@@ -809,40 +775,27 @@ export class AuthService extends DebuggableService {
         'USER_NOT_FOUND',
         localizer.t(`${errorKeyPrefix}.userNotFoundError`),
       );
-    // обрезка пробелов
+    // обрезка пробелов в идентификаторах
     LOGIN_ID_NAMES.forEach(idName => {
       if (typeof inputData[idName] === 'string')
         inputData[idName] = inputData[idName].trim();
     });
     // проверка формата идентификаторов и отсутствия дубликатов
     for (const idName of LOGIN_ID_NAMES) {
-      await this.validateLoginIdInUserDataInput(
-        idName,
-        inputData,
-        existingUser,
-      );
+      await this.validateLoginId(idName, inputData[idName], existingUser.id);
     }
-    // удаление ключей для идентификаторов содержащих null и undefined
+    // удаление ключей идентификаторов содержащих null и undefined
     LOGIN_ID_NAMES.forEach(idName => {
       if (inputData[idName] == null) delete inputData[idName];
     });
-    // если все идентификаторы переданы со значением
-    // пустой строки, то выбрасывается ошибка
-    if (LOGIN_ID_NAMES.every(idName => inputData[idName] === '')) {
-      throw createError(
-        HttpErrors.BadRequest,
-        'LOGIN_IDENTIFIER_REQUIRED',
-        localizer.t(`${errorKeyPrefix}.identifierRequiredError`),
-      );
-    }
     // хэширование пароля (при наличии)
     if (inputData.password) {
       this.options.passwordFormatValidator(inputData.password, localizer);
       inputData.password = await this.hashPassword(inputData.password || '');
       debug('Password hashed.');
     }
-    // удаление даты создания и определение
-    // даты обновления
+    // удаление даты создания
+    // и формирование даты обновления
     delete inputData.createdAt;
     inputData.updatedAt = new Date().toISOString();
     // обновление документа

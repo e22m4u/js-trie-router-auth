@@ -213,22 +213,19 @@ export declare class AuthService extends DebuggableService {
      */
     findUserByLoginIds<T extends BaseUserModel>(lookup: LoginIdsFilter, include?: IncludeClause, silent?: boolean): Promise<T | undefined>;
     /**
-     * Is attempting to remove last login id.
+     * Validate login id.
      *
      * @param idName
-     * @param inputData
-     * @param existingUser
+     * @param idValue
+     * @param ownerId
      */
-    protected isAttemptingToRemoveLastLoginId(idName: LoginIdName, inputData: Partial<BaseUserModel>, existingUser: BaseUserModel): boolean;
+    protected validateLoginId(idName: LoginIdName, idValue: unknown, ownerId?: unknown): Promise<void>;
     /**
-     * Validate login id in user data input.
+     * Require any login id.
      *
-     * @param idName
-     * @param data
-     * @param localizer
-     * @param existingUser
+     * @param inputData
      */
-    protected validateLoginIdInUserDataInput(idName: LoginIdName, inputData: Partial<BaseUserModel>, existingUser?: BaseUserModel): Promise<void>;
+    requireAnyLoginId(data: Record<string, unknown>): Promise<void>;
     /**
      * Create user.
      *
