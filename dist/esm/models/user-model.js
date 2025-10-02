@@ -107,5 +107,9 @@ export { BaseUserModel };
 /**
  * User model.
  */
-export class UserModel extends BaseUserModel {
-}
+let UserModel = class UserModel extends BaseUserModel {
+};
+UserModel = __decorate([
+    model()
+], UserModel);
+export { UserModel };

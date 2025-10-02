@@ -49,6 +49,7 @@ export class BaseAccessTokenModel<
 /**
  * Access token model.
  */
+@model()
 export class AccessTokenModel<
   IdType = number | string,
   UserType extends BaseUserModel = BaseUserModel,

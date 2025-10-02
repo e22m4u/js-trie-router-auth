@@ -48,5 +48,9 @@ export { BaseRoleModel };
 /**
  * Role model.
  */
-export class RoleModel extends BaseRoleModel {
-}
+let RoleModel = class RoleModel extends BaseRoleModel {
+};
+RoleModel = __decorate([
+    model()
+], RoleModel);
+export { RoleModel };

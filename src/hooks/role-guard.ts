@@ -1,6 +1,6 @@
 import HttpErrors from 'http-errors';
 import {createError} from '../utils/index.js';
-import {UserSession} from '../user-session.js';
+import {AuthSession} from '../auth-session.js';
 import {AuthLocalizer} from '../auth-localizer.js';
 import {RequestContext} from '@e22m4u/js-trie-router';
 import {RoutePreHandler} from '@e22m4u/js-trie-router';
@@ -25,10 +25,10 @@ export type AccessRule = (typeof AccessRule)[keyof typeof AccessRule];
 export function roleGuard(roleName?: string | string[]): RoutePreHandler {
   return function (ctx: RequestContext) {
     const localizer = ctx.container.getRegistered(AuthLocalizer);
-    const session = ctx.container.getRegistered(UserSession);
-    // если пользователь не определен,
+    const session = ctx.container.getRegistered(AuthSession);
+    // если пользователь не авторизован,
     // то выбрасывается ошибка
-    if (!session.user)
+    if (!session.isLoggedIn)
       throw createError(
         HttpErrors.Unauthorized,
         'AUTHORIZATION_REQUIRED',
@@ -36,14 +36,13 @@ export function roleGuard(roleName?: string | string[]): RoutePreHandler {
       );
     // если требуемые роли не указаны, то допускается
     // любой аутентифицированный пользователь
-    const roleNames = !Array.isArray(roleName)
-      ? ([roleName].filter(Boolean) as string[])
-      : roleName;
+    const roleNames = [roleName].flat().filter(Boolean);
     if (!roleNames.length || roleNames.includes(AccessRule.AUTHENTICATED)) {
       return;
     }
     // проверка наличия нужной роли
-    const isAllowed = session.roleNames.some(v => roleNames.includes(v));
+    const userRoles = session.getRoleNames();
+    const isAllowed = userRoles.some(v => roleNames.includes(v));
     if (!isAllowed)
       throw createError(
         HttpErrors.Forbidden,

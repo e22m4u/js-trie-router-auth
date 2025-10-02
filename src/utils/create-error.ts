@@ -1,4 +1,3 @@
-import {inspect} from 'util';
 import {format} from '@e22m4u/js-format';
 import {Constructor} from '@e22m4u/js-repository';
 
@@ -20,11 +19,6 @@ export function createError<T extends object>(
 ): T {
   const msg = format(message, ...args);
   const error = new ctor(msg);
-  Object.assign(error, {code});
-  if (process.env['NODE_ENV'] !== 'test') {
-    const debugCtx = {error: msg, code, details};
-    const inspectOptions = {showHidden: false, depth: null, colors: true};
-    console.warn(inspect(debugCtx, inspectOptions));
-  }
+  Object.assign(error, {code, details});
   return error;
 }

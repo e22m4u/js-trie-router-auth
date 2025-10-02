@@ -11,6 +11,9 @@ export class DebuggableService extends BaseDebuggableService {
    * @param container
    */
   constructor(container?: ServiceContainer) {
-    super(container, {noEnvNs: true, namespace: ''});
+    super(container, {
+      namespace: 'jsTrieRouterAuth',
+      noEnvironmentNamespace: true,
+    });
   }
 }

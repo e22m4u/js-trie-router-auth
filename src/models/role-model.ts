@@ -31,6 +31,7 @@ export class BaseRoleModel<IdType = number | string> {
 /**
  * Role model.
  */
+@model()
 export class RoleModel<
   IdType = number | string,
 > extends BaseRoleModel<IdType> {}

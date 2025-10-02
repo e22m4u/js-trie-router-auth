@@ -66,5 +66,9 @@ export { BaseAccessTokenModel };
 /**
  * Access token model.
  */
-export class AccessTokenModel extends BaseAccessTokenModel {
-}
+let AccessTokenModel = class AccessTokenModel extends BaseAccessTokenModel {
+};
+AccessTokenModel = __decorate([
+    model()
+], AccessTokenModel);
+export { AccessTokenModel };

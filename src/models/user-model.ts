@@ -82,6 +82,7 @@ export class BaseUserModel<
 /**
  * User model.
  */
+@model()
 export class UserModel<
   IdType = number | string,
   RoleModel extends BaseRoleModel = BaseRoleModel,

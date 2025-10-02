@@ -5,12 +5,12 @@ import HttpErrors from 'http-errors';
 import { RoleModel } from './models/index.js';
 import { UserModel } from './models/index.js';
 import { createError } from './utils/index.js';
-import { UserSession } from './user-session.js';
-import { Localizer } from '@e22m4u/js-localizer';
+import { AuthSession } from './auth-session.js';
 import { BaseRoleModel } from './models/index.js';
 import { BaseUserModel } from './models/index.js';
 import { removeEmptyKeys } from './utils/index.js';
-import { authLocalizer, AuthLocalizer } from './auth-localizer.js';
+import { authLocalizer } from './auth-localizer.js';
+import { AuthLocalizer } from './auth-localizer.js';
 import { TrieRouter } from '@e22m4u/js-trie-router';
 import { AccessTokenModel } from './models/index.js';
 import { DatabaseSchema } from '@e22m4u/js-repository';
@@ -34,9 +34,17 @@ const AUTH_MODEL_LIST = [
     AccessTokenModel,
 ];
 /**
- * User login identifiers.
+ * Login id names.
  */
-const USER_LOGIN_IDENTIFIERS = ['username', 'email', 'phone'];
+export const LOGIN_ID_NAMES = ['username', 'email', 'phone'];
+/**
+ * Lower case login id names.
+ */
+export const LOWER_CASE_LOGIN_ID_NAMES = [
+    'username',
+    'email',
+    'phone',
+];
 /**
  * Default auth options.
  */
@@ -55,6 +63,7 @@ export const DEFAULT_AUTH_OPTIONS = {
     jwtHeaderName: 'authorization',
     jwtCookieName: 'accessToken',
     jwtQueryParam: 'accessToken',
+    sessionUserInclusion: 'roles',
 };
 /**
  * Pre handler hook.
@@ -62,35 +71,69 @@ export const DEFAULT_AUTH_OPTIONS = {
  * @param ctx
  */
 async function preHandlerHook(ctx) {
-    // инъекция экземпляра переводчика
+    // инъекция экземпляра переводчика в контейнер контекста запроса
     const localizer = authLocalizer.cloneWithLocaleFromRequest(ctx.req);
     ctx.container.set(AuthLocalizer, localizer);
-    // инъекция пользовательской сессии
-    const authService = ctx.container.get(AuthService);
-    const user = await authService.findUserByRequestContext(ctx);
-    const userSession = new UserSession(user);
-    ctx.container.set(UserSession, userSession);
+    // в контейнере запроса нет AuthService, но сервис есть в контейнере
+    // приложения, который является родителем для контейнера запроса,
+    // поэтому извлечение AuthService из контейнера запроса возвращает
+    // существующий экземпляр из своего родителя (контейнера приложения)
+    const rootAuthService = ctx.container.getRegistered(AuthService);
+    // далее выполняется клонирование AuthService с включением текущего
+    // контекста запроса в новый экземпляр сервиса
+    const authService = rootAuthService.cloneWithRequestContext(ctx);
+    // чтобы расширенная копия сервиса авторизации была доступна
+    // в обработчиках маршрута (вместо оригинального сервиса),
+    // выполняется инъекция данной копии в контейнер запроса
+    ctx.container.set(AuthService, authService);
+    // инъекция пользовательской сессии в контейнер контекста запроса
+    const authSession = await authService.createAuthSession(ctx);
+    ctx.container.set(AuthSession, authSession);
 }
 /**
  * Auth service.
  */
 export class AuthService extends DebuggableService {
+    requestContext;
     /**
      * Options.
      */
-    options = JSON.parse(JSON.stringify(DEFAULT_AUTH_OPTIONS));
+    options = Object.assign({}, DEFAULT_AUTH_OPTIONS);
     /**
      * Constructor.
      *
      * @param container
      * @param options
      */
-    constructor(container, options) {
+    constructor(container, options, requestContext) {
         super(container);
+        this.requestContext = requestContext;
         if (options) {
             const filteredOptions = removeEmptyKeys(options);
             this.options = Object.assign(this.options, filteredOptions);
         }
+        if (process.env.NODE_ENV === 'production' &&
+            this.options.jwtSecret === 'REPLACE_ME!') {
+            throw new Error('JWT secret is not set for the production environment!');
+        }
+    }
+    /**
+     * Get localizer
+     */
+    getLocalizer() {
+        if (!this.requestContext ||
+            !this.requestContext.container.has(AuthLocalizer)) {
+            return authLocalizer;
+        }
+        return this.requestContext.container.getRegistered(AuthLocalizer);
+    }
+    /**
+     * Clone with request context.
+     *
+     * @param ctx
+     */
+    cloneWithRequestContext(ctx) {
+        return new AuthService(this.container, this.options, ctx);
     }
     /**
      * Register models.
@@ -102,7 +145,7 @@ export class AuthService extends DebuggableService {
         const defReg = dbs.getService(DefinitionRegistry);
         AUTH_MODEL_LIST.forEach(modelCtor => {
             if (defReg.hasModel(modelCtor.name)) {
-                debug('%s is skipped because it is already registered.', modelCtor.name);
+                debug('%s skipped, already registered.', modelCtor.name);
             }
             else {
                 const modelDef = getModelDefinitionFromClass(modelCtor);
@@ -110,97 +153,95 @@ export class AuthService extends DebuggableService {
                     ...modelDef,
                     datasource: options?.datasource,
                 });
-                debug('%s is registered.', modelCtor.name);
+                debug('%s registered.', modelCtor.name);
             }
         });
-        debug('Model registration is done.');
+        debug('Models registered.');
     }
     /**
      * Register hooks.
      */
     registerRequestHooks() {
         const debug = this.getDebuggerFor(this.registerRequestHooks);
-        debug('Registering hooks.');
+        debug('Registering request hooks.');
         this.getRegisteredService(TrieRouter).addHook('preHandler', preHandlerHook);
-        debug('Hooks registration is done.');
+        debug('Hooks registered.');
     }
     /**
      * Create access token.
      *
      * @param user
-     * @param patch
      */
-    async createAccessToken(user, patch) {
+    async createAccessToken(ownerId, patch) {
         const debug = this.getDebuggerFor(this.createAccessToken);
         debug('Creating access token.');
-        if (!user.id) {
-            throw new Error('User ID is not defined.');
-        }
+        debug('Owner id was %v.', ownerId);
         const data = {
             id: uuidV7(),
-            ownerId: user.id,
+            ownerId,
             createdAt: new Date().toISOString(),
             ...patch,
         };
-        debug('Token ID is %v.', data.id);
-        debug('Token owner is %v.', user.id);
         const dbs = this.getRegisteredService(DatabaseSchema);
         const rep = dbs.getRepository(AccessTokenModel.name);
         const res = (await rep.create(data));
-        debug('Access token saved.');
+        debug('Access token created and saved to database.');
         return res;
     }
     /**
-     * Remove access token.
+     * Remove access token by id.
      *
      * @param tokenId
      */
-    async removeAccessToken(accessTokenId) {
-        const debug = this.getDebuggerFor(this.removeAccessToken);
-        debug('Remove access token.');
-        debug('Token ID is %v.', accessTokenId);
+    async removeAccessTokenById(accessTokenId) {
+        const debug = this.getDebuggerFor(this.removeAccessTokenById);
+        debug('Removing access token by id.');
+        debug('Token id was %v.', accessTokenId);
         const dbs = this.getRegisteredService(DatabaseSchema);
         const rep = dbs.getRepository(AccessTokenModel.name);
         const res = await rep.deleteById(accessTokenId);
         if (res) {
-            debug('Access token removed.');
+            debug('Access token removed from database.');
         }
         else {
-            debug('Access token does not exist.');
+            debug('Access token not found.');
         }
         return res;
     }
     /**
-     * Access Token to JSON Web Token.
+     * Issue JSON Web Token.
      *
      * @param accessToken
      */
-    accessTokenToJwt(accessToken) {
-        const debug = this.getDebuggerFor(this.accessTokenToJwt);
-        debug('Converting access token to JWT.');
+    issueJwt(accessToken) {
+        const debug = this.getDebuggerFor(this.issueJwt);
+        debug('Issuing JWT.');
+        debug('Token id was %v.', accessToken.id);
+        debug('Owner id was %v.', accessToken.ownerId);
         const payload = { uid: accessToken.ownerId, tid: accessToken.id };
-        const expiresAt = Math.floor(Date.now() / 1000) + this.options.jwtTtl;
+        const expiresAtInSec = Math.floor(Date.now() / 1000) + this.options.jwtTtl;
+        const expiresAt = new Date(expiresAtInSec * 1000).toISOString();
+        debug('Expiration date was %v.', expiresAt);
         return new Promise((res, rej) => {
             jwt.sign(payload, this.options.jwtSecret, { algorithm: 'HS256', expiresIn: this.options.jwtTtl }, (err, token) => {
                 if (err || !token) {
                     console.error(err);
-                    return rej(createError(HttpErrors.InternalServerError, 'JWT_ENCODING_FAILED', 'Unable to encode JSON web token', payload));
+                    return rej(createError(HttpErrors.InternalServerError, 'TOKEN_ENCODING_FAILED', 'Unable to encode JSON web token', payload));
                 }
+                debug('Token was %v.', token);
+                debug('Token created.');
                 res({ token, expiresAt });
             });
         });
     }
     /**
-     * Verify JWT and find Access Token.
+     * Decode Jwt.
      *
      * @param jwToken
-     * @param localizer
-     * @param include
      */
-    async verifyJwtAndFindItsOwner(jwToken, localizer, include) {
-        const debug = this.getDebuggerFor(this.verifyJwtAndFindItsOwner);
-        const errorKeyPrefix = 'authorizationService.verifyJwtAndFindItsOwner';
-        debug('Verifying JWT and find its owner.');
+    async decodeJwt(jwToken) {
+        const debug = this.getDebuggerFor(this.decodeJwt);
+        debug('Decoding JWT.');
         let error;
         let payload;
         try {
@@ -222,23 +263,33 @@ export class AuthService extends DebuggableService {
             !('tid' in payload) ||
             !payload.uid ||
             !payload.tid) {
-            console.log(error);
-            throw createError(HttpErrors.InternalServerError, 'JWT_VERIFYING_FAILED', 'Unable to verify JSON web token', payload);
+            console.error(error);
+            throw createError(HttpErrors.InternalServerError, 'TOKEN_VERIFYING_FAILED', 'Unable to verify JSON web token', { token: jwToken, payload });
         }
+        debug.inspect('Payload:', payload);
+        debug('Token decoded successfully.');
+        return payload;
+    }
+    /**
+     * Find access token by id.
+     *
+     * @param jwToken
+     * @param include
+     */
+    async findAccessTokenById(tokenId, include) {
+        const debug = this.getDebuggerFor(this.findAccessTokenById);
+        debug('Finding access token by id.');
+        debug('Token id was %v.', tokenId);
         const dbs = this.getRegisteredService(DatabaseSchema);
         const rep = dbs.getRepository(AccessTokenModel.name);
-        const accessToken = await rep.findOne({
-            where: { id: payload.tid },
-            include: include ? { owner: include } : undefined,
-        });
-        if (!accessToken || accessToken.ownerId !== payload.uid)
-            throw createError(HttpErrors.InternalServerError, 'JWT_VERIFYING_FAILED', 'Unable to verify JSON web token', payload);
-        debug('Access token has been found.');
-        debug('Token ID is %v.', accessToken.id);
-        if (!accessToken.ownerId || !accessToken.owner)
-            throw createError(HttpErrors.Unauthorized, 'ACCESS_TOKEN_OWNER_NOT_FOUND', localizer.t(`${errorKeyPrefix}.ownerNotFound`), { accessTokenId: accessToken.id });
-        debug('Token owner is %v.', accessToken.ownerId);
-        return accessToken.owner;
+        const accessToken = await rep.findOne({ where: { id: tokenId }, include });
+        if (!accessToken)
+            throw createError(HttpErrors.InternalServerError, 'ACCESS_TOKEN_NOT_FOUND', 'Access token is not found in the database', { tokenId });
+        debug('Owner id was %v.', accessToken.ownerId);
+        if (!accessToken.ownerId)
+            throw createError(HttpErrors.Unauthorized, 'ACCESS_TOKEN_OWNER_NOT_FOUND', 'Access token has no owner', { tokenId });
+        debug('Access token found.');
+        return accessToken;
     }
     /**
      * Hash password.
@@ -246,12 +297,14 @@ export class AuthService extends DebuggableService {
      * @param password
      */
     async hashPassword(password) {
+        if (!password)
+            return '';
         try {
             return bcrypt.hash(password, this.options.passwordHashRounds);
         }
         catch (error) {
             console.error(error);
-            throw createError(HttpErrors.InternalServerError, 'HASH_PASSWORD_FAILED', 'Unable to hash the given password');
+            throw createError(HttpErrors.InternalServerError, 'PASSWORD_HASHING_ERROR', 'Unable to hash the given password');
         }
     }
     /**
@@ -259,133 +312,192 @@ export class AuthService extends DebuggableService {
      *
      * @param password
      * @param hash
+     * @param silent
      */
-    async verifyPassword(password, hash) {
+    async verifyPassword(password, hash, silent = false) {
+        const debug = this.getDebuggerFor(this.verifyPassword);
+        const localizer = this.getLocalizer();
+        const errorKeyPrefix = 'authService.verifyPassword';
+        debug('Verifying password');
+        let isValid = false;
         try {
-            return bcrypt.compare(password, hash);
+            isValid = await bcrypt.compare(password, hash);
         }
         catch (error) {
             console.error(error);
             throw createError(HttpErrors.InternalServerError, 'PASSWORD_VERIFYING_ERROR', 'Unable to verify the given password');
         }
+        if (!isValid) {
+            if (silent)
+                return false;
+            throw createError(HttpErrors.BadRequest, 'PASSWORD_VERIFYING_ERROR', localizer.t(`${errorKeyPrefix}.invalidPasswordError`));
+        }
+        debug('Password verified.');
+        return true;
     }
     /**
-     * Find user.
+     * Find user by login ids.
      *
      * @param lookup
      * @param include
+     * @param silent
      */
-    async findUser(lookup, include) {
-        if (!lookup.username && !lookup.email && !lookup.phone)
-            return;
+    async findUserByLoginIds(idsFilter, include, silent = false) {
+        const debug = this.getDebuggerFor(this.findUserByLoginIds);
+        debug('Finding user by login identifiers.');
+        const localizer = this.getLocalizer();
+        const errorKeyPrefix = 'authorizationService.findUserByLoginIds';
+        // формирование условий выборки
         const where = {};
-        if (lookup.username)
-            where.username = lookup.username.toLowerCase();
-        if (lookup.email)
-            where.email = lookup.email.toLowerCase();
-        if (lookup.phone)
-            where.phone = lookup.phone.toLowerCase();
+        let hasAnyLoginId = false;
+        LOGIN_ID_NAMES.forEach(name => {
+            if (idsFilter[name] && String(idsFilter[name]).trim()) {
+                debug('Given %s was %v.', name, idsFilter[name]);
+                hasAnyLoginId = true;
+                const idValue = LOWER_CASE_LOGIN_ID_NAMES.includes(name)
+                    ? String(idsFilter[name]).trim().toLowerCase()
+                    : String(idsFilter[name]).trim();
+                where[name] = idValue;
+            }
+        });
+        // проверка наличия идентификатора
+        if (!hasAnyLoginId) {
+            debug('No login identifiers was given.');
+            if (silent)
+                return;
+            const idFields = LOGIN_ID_NAMES.filter(id => id in idsFilter);
+            const singleIdField = idFields.length === 1 ? idFields[0] : undefined;
+            if (singleIdField && idsFilter[singleIdField] === '')
+                throw createError(HttpErrors.BadRequest, singleIdField.toUpperCase() + '_LOGIN_REQUIRED', localizer.t(`${errorKeyPrefix}.${singleIdField}RequiredError`));
+            throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.identifierRequiredError`));
+        }
         const dbs = this.getRegisteredService(DatabaseSchema);
         const userRep = dbs.getRepository(UserModel.name);
-        const res = await userRep.findOne({ where, include });
-        return res;
+        const user = await userRep.findOne({ where, include });
+        if (!user) {
+            debug('User not found.');
+            if (silent)
+                return;
+            throw createError(HttpErrors.BadRequest, 'USER_NOT_FOUND', localizer.t(`${errorKeyPrefix}.loginFailedError`));
+        }
+        debug('User found with id %v.', user.id);
+        return user;
     }
     /**
-     * Is attempting to remove last identifier.
+     * Is attempting to remove last login id.
      *
      * @param idName
-     * @param data
-     * @param updatingUser
+     * @param inputData
+     * @param existingUser
      */
-    isAttemptingToRemoveLastIdentifier(idName, data, updatingUser) {
-        if (data[idName] !== '')
+    isAttemptingToRemoveLastLoginId(idName, inputData, existingUser) {
+        if (inputData[idName] !== '')
             return false;
-        const otherIdentifiers = USER_LOGIN_IDENTIFIERS.filter(id => id !== idName);
-        const isProvidingNewIdentifier = otherIdentifiers.some(id => data[id]);
+        const otherIdentifiers = LOGIN_ID_NAMES.filter(id => id !== idName);
+        const isProvidingNewIdentifier = otherIdentifiers.some(id => inputData[id]);
         if (isProvidingNewIdentifier)
             return false;
-        const hasOtherExistingIdentifiers = otherIdentifiers.some(id => updatingUser[id]);
+        const hasOtherExistingIdentifiers = otherIdentifiers.some(id => existingUser[id]);
         return !hasOtherExistingIdentifiers;
     }
     /**
-     * Validate user identifier.
+     * Validate login id in user data input.
      *
      * @param idName
      * @param data
      * @param localizer
      * @param existingUser
      */
-    async validateUserIdentifier(idName, data, localizer, existingUser) {
+    async validateLoginIdInUserDataInput(idName, inputData, existingUser) {
+        const debug = this.getDebuggerFor(this.validateLoginIdInUserDataInput);
+        debug('Validating login identifier in the user data input.');
+        const localizer = this.getLocalizer();
         const titledIdName = idName.charAt(0).toUpperCase() + idName.slice(1);
-        const errorKeyPrefix = 'authorizationService.validateUserIdentifier';
-        const value = data[idName];
+        const errorKeyPrefix = 'authorizationService.validateLoginIdInUserDataInput';
+        const idValue = inputData[idName];
+        debug('Given id name was %v.', idName);
+        debug('Given id value was %v.', idValue);
         // если определен существующий пользователь, то данные будут
         // использованы для обновления методом PATCH, а значит проверка
         // значений null и undefined не требуется
-        if (existingUser && value == null)
+        if (existingUser && idValue == null) {
+            debug('Existing user was not specified.');
             return;
+        }
         // если получено пустое значение, но идентификатор
         // является обязательным, то выбрасывается ошибка
         const isRequired = this.options[`require${titledIdName}`];
-        if (isRequired && !value)
-            throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
-        // проверка формата
-        const validator = this.options[`${idName}FormatValidator`];
-        validator(value, localizer);
-        // если найден дубликат идентификатора другого
-        // пользователя, то выбрасывается ошибка
-        const duplicate = await this.findUser({ [idName]: value });
-        if (duplicate && duplicate.id !== existingUser?.id) {
-            const errorKey = `${errorKeyPrefix}.duplicate${titledIdName}Error`;
-            throw createError(HttpErrors.BadRequest, 'DUPLICATE_USER_IDENTIFIER', localizer.t(errorKey));
+        if (isRequired) {
+            debug('Identifier was required.');
+            if (!idValue) {
+                throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
+            }
+            else {
+                debug('Identifier was optional.');
+            }
         }
-        // если выполняется попытка удаления последнего
-        // идентификатора, то выбрасывается ошибка
-        if (existingUser &&
-            this.isAttemptingToRemoveLastIdentifier(idName, data, existingUser)) {
-            throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
+        if (idValue != null) {
+            // проверка формата при наличии значения
+            const validator = this.options[`${idName}FormatValidator`];
+            validator(idValue, localizer);
+            debug('Value format validated.');
+            // если найден дубликат идентификатора другого
+            // пользователя, то выбрасывается ошибка
+            debug('Checking identifier duplicates.');
+            const duplicate = await this.findUserByLoginIds({ [idName]: idValue }, undefined, true);
+            if (duplicate && duplicate.id !== existingUser?.id) {
+                const errorKey = `${errorKeyPrefix}.duplicate${titledIdName}Error`;
+                throw createError(HttpErrors.BadRequest, 'DUPLICATE_LOGIN_IDENTIFIER', localizer.t(errorKey));
+            }
+            debug('No duplicates found.');
+            // если выполняется попытка удаления последнего
+            // идентификатора, то выбрасывается ошибка
+            if (existingUser &&
+                this.isAttemptingToRemoveLastLoginId(idName, inputData, existingUser)) {
+                throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
+            }
         }
+        debug('Identifier validated.');
     }
     /**
-     * Register user.
+     * Create user.
      *
      * @param ctx
      * @param data
      * @param include
      */
-    async createUser(ctx, data, include) {
-        data = JSON.parse(JSON.stringify(data));
+    async createUser(inputData, include) {
         const debug = this.getDebuggerFor(this.createUser);
-        const localizer = ctx.container.getRegistered(Localizer);
+        const localizer = this.getLocalizer();
         debug('Creating user.');
+        inputData = JSON.parse(JSON.stringify(inputData));
         // обрезка пробелов
-        USER_LOGIN_IDENTIFIERS.forEach(loginId => {
-            if (typeof data[loginId] === 'string')
-                data[loginId] = data[loginId].trim();
+        LOGIN_ID_NAMES.forEach(idName => {
+            if (typeof inputData[idName] === 'string')
+                inputData[idName] = inputData[idName].trim();
         });
         // проверка формата идентификаторов и отсутствия дубликатов
-        const validationPromises = [];
-        USER_LOGIN_IDENTIFIERS.forEach(loginId => {
-            validationPromises.push(this.validateUserIdentifier(loginId, data, localizer));
-        });
-        await Promise.all(validationPromises);
+        for (const idName of LOGIN_ID_NAMES) {
+            await this.validateLoginIdInUserDataInput(idName, inputData);
+        }
         // если ни один идентификатор не определен,
         // то выбрасывается ошибка
-        if (USER_LOGIN_IDENTIFIERS.every(id => !data[id]))
+        if (LOGIN_ID_NAMES.every(idName => !inputData[idName]))
             throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t('authorizationService.createUser.identifierRequiredError'));
         // хэширование пароля
-        if (this.options.requirePassword || data.password) {
-            this.options.passwordFormatValidator(data.password, localizer);
-            data.password = await this.hashPassword(data.password || '');
+        if (this.options.requirePassword || inputData.password) {
+            this.options.passwordFormatValidator(inputData.password, localizer);
+            inputData.password = await this.hashPassword(inputData.password || '');
             debug('Password hashed.');
         }
         // переопределение даты создания
-        data.createdAt = new Date().toISOString();
+        inputData.createdAt = new Date().toISOString();
         // создание пользователя
         const dbs = this.getRegisteredService(DatabaseSchema);
         const userRep = dbs.getRepository(UserModel.name);
-        const res = await userRep.create(data, { include });
-        debug('User created %v.', res.id);
+        const res = await userRep.create(inputData, { include });
+        debug('User created.');
+        debug('User id was %v.', res.id);
         return res;
     }
     /**
@@ -396,111 +508,111 @@ export class AuthService extends DebuggableService {
      * @param data
      * @param include
      */
-    async updateUser(ctx, userId, data, include) {
-        data = JSON.parse(JSON.stringify(data));
+    async updateUser(userId, inputData, include) {
+        inputData = JSON.parse(JSON.stringify(inputData));
         const debug = this.getDebuggerFor(this.updateUser);
-        const localizer = ctx.container.getRegistered(Localizer);
         debug('Updating user.');
-        debug('User ID is %v.', userId);
+        debug('User id was %v.', userId);
+        const localizer = this.getLocalizer();
+        const errorKeyPrefix = 'authorizationService.updateUser';
         const dbs = this.getRegisteredService(DatabaseSchema);
         const userRep = dbs.getRepository(UserModel.name);
-        const user = await userRep.findById(userId);
+        const existingUser = await userRep.findOne({ where: { id: userId } });
+        if (!existingUser)
+            throw createError(HttpErrors.BadRequest, 'USER_NOT_FOUND', localizer.t(`${errorKeyPrefix}.userNotFoundError`));
         // обрезка пробелов
-        USER_LOGIN_IDENTIFIERS.forEach(loginId => {
-            if (typeof data[loginId] === 'string')
-                data[loginId] = data[loginId].trim();
+        LOGIN_ID_NAMES.forEach(idName => {
+            if (typeof inputData[idName] === 'string')
+                inputData[idName] = inputData[idName].trim();
         });
         // проверка формата идентификаторов и отсутствия дубликатов
-        const validationPromises = [];
-        USER_LOGIN_IDENTIFIERS.forEach(loginId => {
-            validationPromises.push(this.validateUserIdentifier(loginId, data, localizer, user));
-        });
-        await Promise.all(validationPromises);
+        for (const idName of LOGIN_ID_NAMES) {
+            await this.validateLoginIdInUserDataInput(idName, inputData, existingUser);
+        }
         // удаление ключей для идентификаторов содержащих null и undefined
-        USER_LOGIN_IDENTIFIERS.forEach(loginId => {
-            if (data[loginId] == null)
-                delete data[loginId];
+        LOGIN_ID_NAMES.forEach(idName => {
+            if (inputData[idName] == null)
+                delete inputData[idName];
         });
         // если все идентификаторы переданы со значением
         // пустой строки, то выбрасывается ошибка
-        if (USER_LOGIN_IDENTIFIERS.every(loginId => data[loginId] === '')) {
-            throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t('authorizationService.updateUser.identifierRequiredError'));
+        if (LOGIN_ID_NAMES.every(idName => inputData[idName] === '')) {
+            throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.identifierRequiredError`));
         }
         // хэширование пароля (при наличии)
-        if (data.password != null) {
-            this.options.passwordFormatValidator(data.password, localizer);
-            data.password = await this.hashPassword(data.password || '');
+        if (inputData.password != null) {
+            this.options.passwordFormatValidator(inputData.password, localizer);
+            inputData.password = await this.hashPassword(inputData.password || '');
             debug('Password hashed.');
         }
         // удаление даты создания и определение
         // даты обновления
-        delete data.createdAt;
-        data.updatedAt = new Date().toISOString();
+        delete inputData.createdAt;
+        inputData.updatedAt = new Date().toISOString();
         // обновление документа
-        const res = await userRep.patchById(userId, data, { include });
+        const res = await userRep.patchById(userId, inputData, { include });
         debug('User updated.');
         return res;
     }
     /**
-     * Find user and validate password.
-     *
-     * @param ctx
-     * @param lookup
-     * @param include
-     */
-    async findUserAndValidatePassword(ctx, lookup, include) {
-        const debug = this.getDebuggerFor(this.findUserAndValidatePassword);
-        const localizer = ctx.container.getRegistered(Localizer);
-        const errorKeyPrefix = 'authorizationService.findUserAndValidatePassword';
-        debug('Finding user and validating password.');
-        const debugCtx = JSON.parse(JSON.stringify(lookup));
-        delete debugCtx.password;
-        debug.inspect('Input:', debugCtx);
-        // проверка наличия идентификатора
-        if (!lookup.username && !lookup.email && !lookup.phone) {
-            const idFields = USER_LOGIN_IDENTIFIERS.filter(id => id in lookup);
-            const singleIdField = idFields.length === 1 ? idFields[0] : undefined;
-            if (singleIdField && lookup[singleIdField] === '')
-                throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.${singleIdField}RequiredError`), debugCtx);
-            throw createError(HttpErrors.BadRequest, 'LOGIN_IDENTIFIER_REQUIRED', localizer.t(`${errorKeyPrefix}.identifierRequiredError`), debugCtx);
-        }
-        // поиск пользователя
-        const user = await this.findUser(lookup, include);
-        if (!user)
-            throw createError(HttpErrors.BadRequest, 'USER_NOT_FOUND', localizer.t(`${errorKeyPrefix}.loginFailedError`), debugCtx);
-        // проверка пароля
-        const isPasswordValid = await this.verifyPassword(lookup.password || '', user.password || '');
-        if (!isPasswordValid)
-            throw createError(HttpErrors.BadRequest, 'INVALID_PASSWORD', localizer.t(`${errorKeyPrefix}.loginFailedError`), debugCtx);
-        return user;
-    }
-    /**
-     * Find user by request context.
+     * Find access token by request context.
      *
      * @param ctx
      * @param include
      */
-    async findUserByRequestContext(ctx, include) {
-        const debug = this.getDebuggerFor(this.findUserByRequestContext);
-        const localizer = ctx.container.getRegistered(Localizer);
-        debug('Finding user by request context.');
+    async findAccessTokenByRequestContext(ctx, include) {
+        const debug = this.getDebuggerFor(this.findAccessTokenByRequestContext);
+        debug('Finding access token by request context.');
         const jwToken = ctx.headers[this.options.jwtHeaderName] ||
-            ctx.cookie[this.options.jwtCookieName] ||
+            ctx.cookies[this.options.jwtCookieName] ||
             ctx.query[this.options.jwtQueryParam];
         if (!jwToken) {
-            debug('Token does not exist in the request context.');
+            debug('JWT not found.');
             return;
         }
-        return await this.verifyJwtAndFindItsOwner(jwToken, localizer, include);
+        const payload = await this.decodeJwt(jwToken);
+        const accessToken = await this.findAccessTokenById(payload.tid, include);
+        if (accessToken.ownerId !== payload.uid)
+            throw createError(HttpErrors.BadRequest, 'INVALID_ACCESS_TOKEN_OWNER', 'Your access token not match its owner', payload);
+        debug('Access token found.');
+        debug('Token id was %v.', accessToken.id);
+        debug('Owner id was %v.', accessToken.ownerId);
+        return accessToken;
     }
     /**
-     * Issue JSON Web Token for User.
+     * Find access token owner.
      *
-     * @param user
-     * @param patch
+     * @param accessToken
      */
-    async issueJwtForUser(user, patch) {
-        const accessToken = await this.createAccessToken(user, patch);
-        return this.accessTokenToJwt(accessToken);
+    async findAccessTokenOwner(accessToken, include) {
+        const debug = this.getDebuggerFor(this.findAccessTokenOwner);
+        debug('Finding access token owner.');
+        if (!accessToken.ownerId)
+            throw createError(HttpErrors.BadRequest, 'NO_ACCESS_TOKEN_OWNER', 'Your access token does not have an owner', accessToken);
+        const dbs = this.getRegisteredService(DatabaseSchema);
+        const rep = dbs.getRepository(UserModel.name);
+        const owner = await rep.findOne({
+            where: { id: accessToken.ownerId },
+            include,
+        });
+        if (!owner)
+            throw createError(HttpErrors.BadRequest, 'NO_ACCESS_TOKEN_OWNER', 'Your access token does not have an owner', accessToken);
+        debug('Owner found with id %v.', owner.id);
+        return owner;
+    }
+    /**
+     * Create auth session.
+     *
+     * @param ctx
+     */
+    async createAuthSession(ctx) {
+        const accessToken = await this.findAccessTokenByRequestContext(ctx);
+        if (accessToken) {
+            const user = await this.findAccessTokenOwner(accessToken, this.options.sessionUserInclusion);
+            return new AuthSession(ctx.container, accessToken, user);
+        }
+        else {
+            return new AuthSession(ctx.container);
+        }
     }
 }

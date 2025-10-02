@@ -1,6 +1,8 @@
+import { AuthSession } from './auth-session.js';
 import { Localizer } from '@e22m4u/js-localizer';
 import { BaseUserModel } from './models/index.js';
 import { WithoutId } from '@e22m4u/js-repository';
+import { AuthLocalizer } from './auth-localizer.js';
 import { AccessTokenModel } from './models/index.js';
 import { IncludeClause } from '@e22m4u/js-repository';
 import { ServiceContainer } from '@e22m4u/js-service';
@@ -14,13 +16,17 @@ type RegisterModelsOptions = {
     datasource?: string;
 };
 /**
- * User login identifiers.
+ * Login id names.
  */
-declare const USER_LOGIN_IDENTIFIERS: readonly ["username", "email", "phone"];
+export declare const LOGIN_ID_NAMES: readonly ["username", "email", "phone"];
 /**
- * User login identifier.
+ * Login id.
  */
-type UserLoginIdentifier = (typeof USER_LOGIN_IDENTIFIERS)[number];
+export type LoginIdName = (typeof LOGIN_ID_NAMES)[number];
+/**
+ * Lower case login id names.
+ */
+export declare const LOWER_CASE_LOGIN_ID_NAMES: LoginIdName[];
 /**
  * Data format validator.
  */
@@ -43,38 +49,64 @@ export type AuthServiceOptions = {
     jwtHeaderName: string;
     jwtCookieName: string;
     jwtQueryParam: string;
+    sessionUserInclusion: IncludeClause;
 };
 /**
  * Default auth options.
  */
 export declare const DEFAULT_AUTH_OPTIONS: AuthServiceOptions;
 /**
- * User lookup.
+ * Login ids filter.
  */
-export type UserLookup = {
-    [K in UserLoginIdentifier]?: string;
+export type LoginIdsFilter = {
+    [K in LoginIdName]?: string;
 };
 /**
  * User lookup with password.
  */
-export type UserLookupWithPassword = UserLookup & {
+export type UserLookupWithPassword = LoginIdsFilter & {
     password?: string;
+};
+/**
+ * Jwt payload.
+ */
+export type JwtPayload = {
+    tid: string;
+    uid: string;
+};
+/**
+ * Jwt issue result.
+ */
+export type JwtIssueResult = {
+    token: string;
+    expiresAt: string;
 };
 /**
  * Auth service.
  */
 export declare class AuthService extends DebuggableService {
+    readonly requestContext?: RequestContext | undefined;
     /**
      * Options.
      */
-    readonly options: any;
+    readonly options: AuthServiceOptions;
     /**
      * Constructor.
      *
      * @param container
      * @param options
      */
-    constructor(container?: ServiceContainer, options?: Partial<AuthServiceOptions>);
+    constructor(container?: ServiceContainer, options?: Partial<AuthServiceOptions>, requestContext?: RequestContext | undefined);
+    /**
+     * Get localizer
+     */
+    getLocalizer(): AuthLocalizer;
+    /**
+     * Clone with request context.
+     *
+     * @param ctx
+     */
+    cloneWithRequestContext(ctx: RequestContext): AuthService;
     /**
      * Register models.
      */
@@ -87,32 +119,33 @@ export declare class AuthService extends DebuggableService {
      * Create access token.
      *
      * @param user
-     * @param patch
      */
-    createAccessToken<T extends BaseAccessTokenModel>(user: BaseUserModel, patch?: Partial<T>): Promise<T>;
+    createAccessToken<T extends BaseAccessTokenModel>(ownerId: string | number, patch?: Partial<T>): Promise<T>;
     /**
-     * Remove access token.
+     * Remove access token by id.
      *
      * @param tokenId
      */
-    removeAccessToken(accessTokenId: AccessTokenModel['id']): Promise<boolean>;
+    removeAccessTokenById(accessTokenId: AccessTokenModel['id']): Promise<boolean>;
     /**
-     * Access Token to JSON Web Token.
+     * Issue JSON Web Token.
      *
      * @param accessToken
      */
-    accessTokenToJwt(accessToken: BaseAccessTokenModel): Promise<{
-        token: string;
-        expiresAt: number;
-    }>;
+    issueJwt(accessToken: BaseAccessTokenModel): Promise<JwtIssueResult>;
     /**
-     * Verify JWT and find Access Token.
+     * Decode Jwt.
      *
      * @param jwToken
-     * @param localizer
+     */
+    decodeJwt(jwToken: string): Promise<JwtPayload>;
+    /**
+     * Find access token by id.
+     *
+     * @param jwToken
      * @param include
      */
-    verifyJwtAndFindItsOwner<T extends BaseUserModel>(jwToken: string, localizer: Localizer, include?: IncludeClause): Promise<T>;
+    findAccessTokenById<T extends BaseAccessTokenModel>(tokenId: string, include?: IncludeClause): Promise<T>;
     /**
      * Hash password.
      *
@@ -124,40 +157,90 @@ export declare class AuthService extends DebuggableService {
      *
      * @param password
      * @param hash
+     * @param silent
      */
-    verifyPassword(password: string, hash: string): Promise<boolean>;
+    verifyPassword(password: string, hash: string): Promise<true>;
     /**
-     * Find user.
+     * Verify password.
+     *
+     * @param password
+     * @param hash
+     * @param silent
+     */
+    verifyPassword(password: string, hash: string, silent: false): Promise<true>;
+    /**
+     * Verify password.
+     *
+     * @param password
+     * @param hash
+     * @param silent
+     */
+    verifyPassword(password: string, hash: string, silent: true): Promise<boolean>;
+    /**
+     * Verify password.
+     *
+     * @param password
+     * @param hash
+     * @param silent
+     */
+    verifyPassword(password: string, hash: string, silent?: boolean): Promise<boolean>;
+    /**
+     * Find user by login ids.
      *
      * @param lookup
      * @param include
+     * @param silent
      */
-    findUser<T extends BaseUserModel>(lookup: UserLookup, include?: IncludeClause): Promise<T | undefined>;
+    findUserByLoginIds<T extends BaseUserModel>(lookup: LoginIdsFilter, include: IncludeClause | undefined): Promise<T>;
     /**
-     * Is attempting to remove last identifier.
+     * Find user by login ids.
+     *
+     * @param lookup
+     * @param include
+     * @param silent
+     */
+    findUserByLoginIds<T extends BaseUserModel>(lookup: LoginIdsFilter, include: IncludeClause | undefined, silent: false): Promise<T>;
+    /**
+     * Find user by login ids.
+     *
+     * @param lookup
+     * @param include
+     * @param silent
+     */
+    findUserByLoginIds<T extends BaseUserModel>(lookup: LoginIdsFilter, include: IncludeClause | undefined, silent: true): Promise<T | undefined>;
+    /**
+     * Find user by login ids.
+     *
+     * @param lookup
+     * @param include
+     * @param silent
+     */
+    findUserByLoginIds<T extends BaseUserModel>(lookup: LoginIdsFilter, include?: IncludeClause, silent?: boolean): Promise<T | undefined>;
+    /**
+     * Is attempting to remove last login id.
      *
      * @param idName
-     * @param data
-     * @param updatingUser
+     * @param inputData
+     * @param existingUser
      */
-    protected isAttemptingToRemoveLastIdentifier(idName: UserLoginIdentifier, data: Partial<BaseUserModel>, updatingUser: BaseUserModel): boolean;
+    protected isAttemptingToRemoveLastLoginId(idName: LoginIdName, inputData: Partial<BaseUserModel>, existingUser: BaseUserModel): boolean;
     /**
-     * Validate user identifier.
+     * Validate login id in user data input.
      *
      * @param idName
      * @param data
      * @param localizer
      * @param existingUser
      */
-    protected validateUserIdentifier(idName: UserLoginIdentifier, data: Partial<BaseUserModel>, localizer: Localizer, existingUser?: BaseUserModel): Promise<void>;
+    protected validateLoginIdInUserDataInput(idName: LoginIdName, inputData: Partial<BaseUserModel>, existingUser?: BaseUserModel): Promise<void>;
     /**
-     * Register user.
+     * Create user.
      *
      * @param ctx
      * @param data
      * @param include
      */
-    createUser<T extends BaseUserModel, V extends WithoutId<'id', T>>(ctx: RequestContext, data: V, include?: IncludeClause): Promise<T>;
+    createUser<T extends BaseUserModel, V extends WithoutId<'id', T>>(inputData: V, include?: IncludeClause): Promise<T>;
     /**
      * Update user.
      *
@@ -166,31 +249,25 @@ export declare class AuthService extends DebuggableService {
      * @param data
      * @param include
      */
-    updateUser<T extends BaseUserModel>(ctx: RequestContext, userId: T['id'], data: Partial<T>, include?: IncludeClause): Promise<T>;
+    updateUser<T extends BaseUserModel>(userId: T['id'], inputData: Partial<T>, include?: IncludeClause): Promise<T>;
     /**
-     * Find user and validate password.
-     *
-     * @param ctx
-     * @param lookup
-     * @param include
-     */
-    findUserAndValidatePassword<T extends BaseUserModel>(ctx: RequestContext, lookup: UserLookupWithPassword, include?: IncludeClause): Promise<T>;
-    /**
-     * Find user by request context.
+     * Find access token by request context.
      *
      * @param ctx
      * @param include
      */
-    findUserByRequestContext<T extends BaseUserModel>(ctx: RequestContext, include?: IncludeClause): Promise<T | undefined>;
+    findAccessTokenByRequestContext<T extends BaseAccessTokenModel>(ctx: RequestContext, include?: IncludeClause): Promise<T | undefined>;
     /**
-     * Issue JSON Web Token for User.
+     * Find access token owner.
      *
-     * @param user
-     * @param patch
+     * @param accessToken
      */
-    issueJwtForUser(user: BaseUserModel, patch: object): Promise<{
-        token: string;
-        expiresAt: number;
-    }>;
+    findAccessTokenOwner<T extends BaseUserModel>(accessToken: BaseAccessTokenModel, include?: IncludeClause): Promise<T>;
+    /**
+     * Create auth session.
+     *
+     * @param ctx
+     */
+    createAuthSession(ctx: RequestContext): Promise<AuthSession>;
 }
 export {};
