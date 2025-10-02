@@ -781,7 +781,7 @@ var _AuthService = class _AuthService extends DebuggableService {
    * @param existingUser
    */
   isAttemptingToRemoveLastLoginId(idName, inputData, existingUser) {
-    if (inputData[idName] !== "")
+    if (!(idName in inputData) || inputData[idName])
       return false;
     const otherIdentifiers = LOGIN_ID_NAMES.filter((id) => id !== idName);
     const isProvidingNewIdentifier = otherIdentifiers.some((id) => inputData[id]);
@@ -820,7 +820,7 @@ var _AuthService = class _AuthService extends DebuggableService {
         debug("Identifier was optional.");
       }
     }
-    if (idValue != null) {
+    if (idValue) {
       const validator = this.options[`${idName}FormatValidator`];
       validator(idValue, localizer);
       debug("Value format validated.");
@@ -831,9 +831,9 @@ var _AuthService = class _AuthService extends DebuggableService {
         throw createError(import_http_errors5.default.BadRequest, "DUPLICATE_LOGIN_IDENTIFIER", localizer.t(errorKey));
       }
       debug("No duplicates found.");
-      if (existingUser && this.isAttemptingToRemoveLastLoginId(idName, inputData, existingUser)) {
-        throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
-      }
+    }
+    if (existingUser && this.isAttemptingToRemoveLastLoginId(idName, inputData, existingUser)) {
+      throw createError(import_http_errors5.default.BadRequest, "LOGIN_IDENTIFIER_REQUIRED", localizer.t(`${errorKeyPrefix}.${idName}RequiredError`));
     }
     debug("Identifier validated.");
   }
